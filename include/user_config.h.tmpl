@@ -10,6 +10,7 @@
 #define MQTT_USERNAME        "YOUR_MQTT_USERNAME"
 #define MQTT_PASSWORD        "YOUR_MQTT_PASSWORD"
 #define MQTT_TOPIC_BASE      "home/weather"
+#define MQTT_TOPIC_BASE_DEVICE "home/cyd-mac"
 #define MQTT_TOPIC_SUBSCRIBE "home/weather/#"
 #define MQTT_QOS             1
 
@@ -25,5 +26,22 @@
     "\xA1"                \
     "C"
 #define WEATHER_WIND_UNIT "km/h"
+
+// Macintosh Emulation Settings
+#ifndef UMAC_MEMSIZE
+#define UMAC_MEMSIZE 1024
+#endif
+
+#ifndef DISP_WIDTH
+#define DISP_WIDTH 512
+#endif
+
+#ifndef DISP_HEIGHT
+#define DISP_HEIGHT 342
+#endif
+
+#ifndef ENABLE_DASM
+#define ENABLE_DASM 0
+#endif
 
 #endif

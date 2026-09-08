@@ -28,6 +28,7 @@
 #ifndef MACHW_H
 #define MACHW_H
 
+#include "user_config.h"
 #include "rom.h"
 
 #define ROM_ADDR      0x400000
@@ -79,7 +80,7 @@ extern int overlay;
 #define IS_DUMMY(x) \
     (((ADR24(x) >= 0x800000) && (ADR24(x) < 0x9ffff8)) || ((ADR24(x) & 0xf00000) == 0x500000))
 #define IS_TESTSW(x)  (ADR24(x) >= 0xf00000)
-#define IS_ESP_IPC(x) ((ADR24(x) >= 0xF00000) && (ADR24(x) < 0xF000100))
+
 
 /* Unaligned/BE read/write macros from Mushashi: */
 #define READ_BYTE(BASE, ADDR) (BASE)[ADDR]

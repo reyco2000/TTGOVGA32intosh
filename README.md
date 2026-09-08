@@ -1,128 +1,123 @@
-<div>
-<img src="./assets/cydintosh_front.jpg" height="300px">
-<img src="./assets/cydintosh_front_3.jpg" height="300px">
-</div>
+# Cydintosh (VGA32 Edition)
 
-# Cydintosh
+A Macintosh Plus emulator port for ESP32 with VGA and PS/2 peripheral support.
 
-A Macintosh Plus emulator port for Cheap-Yellow-Display board (ESP32), with some little 68k Mac applications.
-
-- Macintosh Plus emulation using umac and Musashi 68k emulator
-- 240x320 LCD with touchpad emulation for mouse control
-- *Homebrew* Mac applications built with Retro68 (Weather, WiFi status, etc.)
-- IPC between Mac and ESP32 (WiFi scan, MQTT weather data)
+- **Macintosh Plus Emulation**: Uses `umac` and the Musashi 68k emulator configured with **1MB of RAM**.
+- **VGA Output**: Outputs a standard 640x480 VGA signal at 60Hz (displaying the emulated 512x342 Mac Plus screen centered with a clean black background).
+- **PS/2 Keyboard & Mouse**: Connect standard PS/2 keyboard and mouse directly to the VGA32 board.
+- **SD Card Support**: Loads the Macintosh system disk (`disk.img`) and ROM (`vMAC.ROM`) dynamically from a FAT16/FAT32 formatted Micro SD card.
+- **Dynamic ROM Patching**: Patches the Macintosh Plus ROM in writable PSRAM at runtime, removing the need for pre-patching tools.
 
 ## Hardware BOM
 
-| Component                | Quantity | Notes                                         |
-| ------------------------ | :------- | :-------------------------------------------- |
-| CYD2USB (ESP32-2432S028) | 1        | ESP32 with ILI9341 240x320 LCD, XPT2046 touch |
-| M2x3 Self-Tapping screw  | 4        | For enclosure assembly                        |
-
-> Note: The enclosure is only compatible with the [CYD2USB](https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display/blob/main/cyd.md) (Type-C + micro USB) variant.
-
-## Getting Started
-
-1. **Flash**: See [Building](#building) to build and flash the firmware/ROM/disk image
-2. **Print**: 3D print the enclosure from [`./enclosure`](./enclosure)
-3. **Assemble**: Mount the CYD into the enclosure and secure with four M2x3 self-tapping screws
+| Component | Quantity | Notes |
+| --- | :--- | :--- |
+| TTGO VGA32 V1.4 Board | 1 | ESP32 board with built-in VGA port, PS/2 ports, and Micro SD slot |
+| PS/2 Keyboard | 1 | Standard keyboard with PS/2 connector |
+| PS/2 Mouse | 1 | Standard mouse with PS/2 connector |
+| VGA Monitor | 1 | VGA display supporting 640x480 @ 60Hz resolution |
+| Micro SD Card | 1 | Formatted as FAT16 or FAT32 |
 
 ## Prerequisites for Emulator
 
-- Mac Plus ROM v3 (4D1F8172, 128KB) `rom.bin`
-- System 3.2 bootable disk image (400KB)
-- HFS disk image (800KB `cyd_800k.dsk` provided, includes pre-built Mac apps for Cydintosh)
+- **Mac Plus ROM v3** (4D1F8172, 128KB): Name it `vMAC.ROM` (original, unpatched) and place it on the root of your SD card.
+- **System Disk Image**: A bootable System 6 HFS disk image named `disk.img` (e.g., a ~100MB HFS system disk) placed on the root of your SD card.
 
-See also the [pico-mac](https://github.com/evansm7/pico-mac) repo for ROM and disk image requirements.
+## Getting Started
+
+1. **Hardware Setup**:
+   - Plug the PS/2 Keyboard and PS/2 Mouse into the respective ports on the TTGO VGA32 board.
+   - Connect the VGA Monitor to the VGA port.
+   - Insert a Micro SD card containing your `disk.img` and `vMAC.ROM` at the root directory.
+
+2. **Flash Firmware**:
+   - Build and upload the firmware to the VGA32 board (see [Building](#building)).
 
 ## Building
 
+Regardless of the build system you choose, start by performing the one-time project setup:
+
 ```bash
-# Clone and initialize submodules
-git clone --recursive https://github.com/likeablob/cydintosh
+# 1. Navigate to the project directory
 cd cydintosh
 
-# If you cloned without --recursive, initialize submodules:
+# 2. Initialize and download submodules (required for Musashi, umac, and softfloat)
 git submodule update --init --recursive
 
-# Setup m68k configuration
-(cd external/umac/external/Musashi && ln -sf ../../../../include/m68kconf.h m68kconf.h)
-
-# Generate m68kops.c
+# 3. Generate m68kops.c (Musashi core opcode tables)
+# On Windows, you can run this in Git Bash or standard bash:
 (cd external/umac && make prepare)
 
-# Create user configuration
+# 4. Create your local configuration file
 cp include/user_config.h.tmpl include/user_config.h
-# Edit include/user_config.h with your WiFi/MQTT settings
-
-# Generate and flash patched ROM
-# NOTE: Specify the correct serial port depending on your setup/OS
-python3 tools/generate_patched_rom.py path/to/rom.bin -o rom_patched.bin
-esptool --port /dev/ttyUSB0 write_flash 0x210000 rom_patched.bin
-
-# Prepare disk image
-# The cyd_800k.dsk includes pre-built Mac applications (CydCtl, Weather, WiFi).
-# To create a fresh disk with System 3.2 using Mini vMac emulator:
-#   ./Mini\ vMac system3.dsk cyd_800k.dsk
-#   Then copy System folder from system3.dsk to cyd_800k.dsk in the emulator
-
-# Finally, copy the prepared disk to data/disk.img
-cp cyd_800k.dsk data/disk.img
-
-# Build and upload firmware
-# For the CYD (micro USB) variant, use `-e cyd`
-# Add a new [env:xxx] section to platformio.ini for other minor variants.
-pio run -e cyd2usb -t upload
-
-
-# Upload disk image
-pio run -e cyd2usb -t uploadfs
 ```
 
-To use the Weather app, continue with [Home Assistant Setup](#home-assistant-setup).
+Now, choose one of the three methods below to build and upload the firmware.
 
-## Development
+---
+
+### Method A: Arduino CLI (Automated Build & Upload)
+
+An automated Python script, [build_arduino.py](file:///c:/rey/cydintosh/build_arduino.py), is provided to handle all the necessary source-flattening, patching, and compilation. It automatically installs dependencies like **FabGL** and compiles cleanly using the custom configuration in `user_config.h`.
+
+* **To compile only**:
+  ```bash
+  python build_arduino.py --compile
+  ```
+* **To compile and upload**:
+  ```bash
+  python build_arduino.py --compile --upload --port COM3
+  ```
+  *(Replace `COM3` with your board's serial port; e.g., `/dev/ttyUSB0` on Linux/macOS)*
+
+---
+
+### Method B: Arduino CLI / Arduino IDE (Manual)
+
+Once the sketch has been prepared by the Python helper, it acts as a standard, fully self-contained Arduino sketch.
+
+1. **Prepare the files**:
+   ```bash
+   python build_arduino.py --prepare
+   ```
+   *(This creates a self-contained sketch under `espvgatosh/`)*
+
+2. **Compile using `arduino-cli` directly** (from inside the `espvgatosh/` directory):
+   ```bash
+   cd espvgatosh
+   arduino-cli compile --fqbn esp32:esp32:esp32:PSRAM=enabled,PartitionScheme=huge_app .
+   ```
+
+3. **Upload using `arduino-cli` directly**:
+   ```bash
+   arduino-cli upload -p COM3 --fqbn esp32:esp32:esp32:PSRAM=enabled,PartitionScheme=huge_app .
+   ```
+
+> [!TIP]
+> **Using Arduino IDE (GUI)**: You can open the generated sketch file [espvgatosh.ino](file:///c:/rey/cydintosh/espvgatosh/espvgatosh.ino) directly in the Arduino IDE (Version 2.x recommended). Select **ESP32 Dev Module** as your board, enable **PSRAM**, choose the **Huge APP** partition scheme, and use the standard verify/upload GUI buttons.
+
+---
+
+### Method C: PlatformIO (Command Line)
+
+If you prefer using PlatformIO, you can compile and upload using the standard PlatformIO CLI:
 
 ```bash
-# Format tracked C/C++ files
-mise run format
-
-# Check formatting without changes
-mise run format:check
-
-# Watch serial logs
-pio device monitor
+# Build and upload firmware
+pio run -e vga32 -t upload
 ```
 
-## Mac Applications
 
-*Homebrew* Mac applications for Cydintosh.
+## Mac Applications & ESP32-Mac IPC
 
-| App     | Description                           |
-| ------- | ------------------------------------- |
-| Weather | Weather display via MQTT              |
-| CydCtl  | Hardware control (backlight, RGB LED) |
-| WiFi    | WiFi status and scan                  |
+The emulator supports dynamic IPC between the emulated Mac OS and the ESP32 via a shared memory-mapped interface at `0xF00000`. This enables homebrew Mac applications (such as Weather, WiFi Status, etc.) to query ESP32 host services:
 
-<div>
-<img src="./assets/cydintosh_app_weather.jpg" height="300px">
-<img src="./assets/cydintosh_app_cydctl.jpg" height="300px">
-<img src="./assets/cydintosh_app_wifi.jpg" height="300px">
-</div>
+| App | Description | Commands |
+| --- | --- | --- |
+| Weather | Displays weather info via MQTT | `GET_WEATHER_DATA` |
+| WiFi | WiFi network scanning and status | `GET_WIFI_LIST`, `GET_WIFI_STATUS` |
 
-### ESP32-Mac IPC Interface
-
-The ESP32 exposes a command interface via memory-mapped region at `0xF00000`. Mac applications read/write this shared memory to communicate with ESP32:
-
-| App     | Commands                                           |
-| ------- | -------------------------------------------------- |
-| Weather | `GET_WEATHER_DATA` ...                             |
-| CydCtl  | `GET_HW_STATE`, `SET_BACKLIGHT`, `SET_LED_RGB` ... |
-| WiFi    | `GET_WIFI_LIST`, `GET_WIFI_STATUS` ...             |
-
-See `include/umac_ipc.h` and `mac-app/common/esp_ipc.h` for full command definitions.
-
-### Weather App
+### Weather App Integration
 
 ```mermaid
 flowchart LR
@@ -136,90 +131,46 @@ flowchart LR
     linkStyle 3,4 stroke:#999
 ```
 
-1. Home Assistant automation publishes weather data to MQTT every hour
-2. ESP32 subscribes to MQTT topics and stores received data
-3. Weather App polls ESP32 via IPC every 30s and renders the data
+1. Home Assistant automation publishes weather data to MQTT every hour.
+2. The ESP32 subscribes to MQTT and caches the data in memory.
+3. The emulated Macintosh Weather app polls the ESP32 via IPC and renders the weather interface.
 
-#### Home Assistant Setup
-
-You need to set up MQTT and a weather integration in Home Assistant to use the Weather app.
-
-- [MQTT Integration](https://www.home-assistant.io/integrations/mqtt/)
-- [Weather Integrations](https://www.home-assistant.io/integrations/#weather)
-- [Definitive guide to Weather integrations (Community)](https://community.home-assistant.io/t/definitive-guide-to-weather-integrations/736419)
-
-
-1. In Home Assistant, go to **Settings > Automations > Create Automation > Edit YAML**
-2. Paste the content of [`homeassistant/weather_to_mqtt.yaml`](homeassistant/weather_to_mqtt.yaml)
-3. Edit the variables:
-   ```yaml
-   variables:
-     weather_entity: "weather.home"
-     topic_prefix: "home/weather"
-     location: "Chicago"
-   ```
-
-Optionally, add the [`homeassistant/brightness_schedule.yaml`](homeassistant/brightness_schedule.yaml) automation for time-based display dimming.
-
-#### ESP32 Configuration
-
-- WiFi, MQTT broker credentials, and weather display units etc. are configured in [`include/user_config.h`](include/user_config.h.tmpl).
-- The device expose entities (e.g. display brightness) via [HA MQTT Discovery](https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery).
-
-```c
-...
-#define WIFI_SSID       "YOUR_WIFI_SSID"
-#define WIFI_PASSWORD   "YOUR_WIFI_PASSWORD"
-
-#define MQTT_BROKER_URL "mqtt://192.168.1.100:1883"
-#define MQTT_USERNAME   "YOUR_MQTT_USERNAME"
-#define MQTT_PASSWORD   "YOUR_MQTT_PASSWORD"
-...
-
-#define HA_DISCOVERY_PREFIX  "homeassistant"
-...
-
-#define WEATHER_TEMP_UNIT \
-    "\xA1"                \
-    "C"
-```
+See `include/umac_ipc.h` for complete IPC protocol definitions.
 
 ### Updating the Disk Image Manually
 
+To rebuild the homebrew Mac applications and pack them back into a disk image:
+
 ```bash
 # Rebuild applications and update disk image
-./tools/update-disk.sh data/disk.img
-
-# Re-upload disk image
-pio run -e cyd2usb -t uploadfs
+./tools/update-disk.sh path/to/disk.img
+# Copy the updated disk.img back to your Micro SD card
 ```
 
-## Gallery
+## Development
 
-<div>
-<img src="./assets/cydintosh_front_3.jpg" height="300px">
-<img src="./assets/cydintosh_back.jpg" height="300px">
-</div>
+```bash
+# Format tracked C/C++ files
+mise run format
+
+# Check formatting without changes
+mise run format:check
+
+# Watch serial logs (PlatformIO)
+pio device monitor
+
+# Watch serial logs (Arduino CLI)
+arduino-cli monitor -p COM3
+```
 
 ## Acknowledgements
 
 - [Musashi](https://github.com/kstenerud/Musashi) - m68k emulator
 - [umac](https://github.com/evansm7/umac) - Mac Plus emulator core
 - [pico-mac](https://github.com/evansm7/pico-mac) - Reference implementation for RP2040
-- [ESP32-Cheap-Yellow-Display](https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display) - CYD community
-- For dependencies, see also src/idf_component.yml
+- [FabGL](https://github.com/fdivitto/FabGL) - Graphics, VGA, and PS/2 input library for ESP32
 
 ## License
 
 - **Software**: MIT
 - **External libraries**: See respective licenses in `external/`
-
-## TODO
-
-- [ ] Better icons for mac-apps
-
-## Related Projects
-
-- [likeablob/denki-kurage](https://github.com/likeablob/denki-kurage): Another CYD-based gadget
-- Macbar (WIP):  ESP32-S3 port utilizing PSRAM
-- Macbento (WIP)

@@ -1,4 +1,4 @@
-# Cydintosh (VGA32 Edition)
+# TTGOVGA32intosh (VGA32 Edition)
 
 A Macintosh Plus emulator port for ESP32 with VGA and PS/2 peripheral support.
 
@@ -35,142 +35,62 @@ A Macintosh Plus emulator port for ESP32 with VGA and PS/2 peripheral support.
 
 ## Building
 
-Regardless of the build system you choose, start by performing the one-time project setup:
+This is a regular Arduino sketch: `TTGOVGA32intosh.ino` at the repository root, with all code under `src/`. The umac and Musashi emulator sources (including the generated `m68kops.c`) are bundled in `src/emu/`, so there are no submodules or code-generation steps.
+
+### Requirements
+
+- [arduino-cli](https://arduino.github.io/arduino-cli/) (or Arduino IDE 2.x)
+- ESP32 Arduino core **2.0.x** (tested with 2.0.17; FabGL does not support core 3.x)
+- FabGL library (tested with 1.0.9)
 
 ```bash
-# 1. Navigate to the project directory
-cd cydintosh
-
-# 2. Initialize and download submodules (required for Musashi, umac, and softfloat)
-git submodule update --init --recursive
-
-# 3. Generate m68kops.c (Musashi core opcode tables)
-# On Windows, you can run this in Git Bash or standard bash:
-(cd external/umac && make prepare)
-
-# 4. Create your local configuration file
-cp include/user_config.h.tmpl include/user_config.h
+arduino-cli core install esp32:esp32@2.0.17
+arduino-cli lib install FabGL
 ```
 
-Now, choose one of the three methods below to build and upload the firmware.
+The repository folder must be named `TTGOVGA32intosh` (Arduino requires the sketch folder to match the `.ino` name).
 
----
+### Arduino CLI
 
-### Method A: Arduino CLI (Automated Build & Upload)
-
-An automated Python script, [build_arduino.py](file:///c:/rey/cydintosh/build_arduino.py), is provided to handle all the necessary source-flattening, patching, and compilation. It automatically installs dependencies like **FabGL** and compiles cleanly using the custom configuration in `user_config.h`.
-
-* **To compile only**:
-  ```bash
-  python build_arduino.py --compile
-  ```
-* **To compile and upload**:
-  ```bash
-  python build_arduino.py --compile --upload --port COM3
-  ```
-  *(Replace `COM3` with your board's serial port; e.g., `/dev/ttyUSB0` on Linux/macOS)*
-
----
-
-### Method B: Arduino CLI / Arduino IDE (Manual)
-
-Once the sketch has been prepared by the Python helper, it acts as a standard, fully self-contained Arduino sketch.
-
-1. **Prepare the files**:
-   ```bash
-   python build_arduino.py --prepare
-   ```
-   *(This creates a self-contained sketch under `espvgatosh/`)*
-
-2. **Compile using `arduino-cli` directly** (from inside the `espvgatosh/` directory):
-   ```bash
-   cd espvgatosh
-   arduino-cli compile --fqbn esp32:esp32:esp32:PSRAM=enabled,PartitionScheme=huge_app .
-   ```
-
-3. **Upload using `arduino-cli` directly**:
-   ```bash
-   arduino-cli upload -p COM3 --fqbn esp32:esp32:esp32:PSRAM=enabled,PartitionScheme=huge_app .
-   ```
-
-> [!TIP]
-> **Using Arduino IDE (GUI)**: You can open the generated sketch file [espvgatosh.ino](file:///c:/rey/cydintosh/espvgatosh/espvgatosh.ino) directly in the Arduino IDE (Version 2.x recommended). Select **ESP32 Dev Module** as your board, enable **PSRAM**, choose the **Huge APP** partition scheme, and use the standard verify/upload GUI buttons.
-
----
-
-### Method C: PlatformIO (Command Line)
-
-If you prefer using PlatformIO, you can compile and upload using the standard PlatformIO CLI:
+Board options (ESP32 Dev Module, PSRAM enabled, Huge APP partition scheme, debug log level) and the upload port are set in [sketch.yaml](sketch.yaml), so from the repository root:
 
 ```bash
-# Build and upload firmware
-pio run -e vga32 -t upload
+# Compile
+arduino-cli compile
+
+# Compile and upload
+arduino-cli compile --upload
+
+# Watch serial logs
+arduino-cli monitor -c baudrate=115200
 ```
 
+If your board shows up on a different port, edit `default_port` in `sketch.yaml` or pass `-p /dev/ttyUSB0` (e.g. `COM3` on Windows).
 
-## Mac Applications & ESP32-Mac IPC
+### Arduino IDE
 
-The emulator supports dynamic IPC between the emulated Mac OS and the ESP32 via a shared memory-mapped interface at `0xF00000`. This enables homebrew Mac applications (such as Weather, WiFi Status, etc.) to query ESP32 host services:
+Open `TTGOVGA32intosh.ino`, select **ESP32 Dev Module**, set **PSRAM: Enabled** and **Partition Scheme: Huge APP (3MB No OTA/1MB SPIFFS)**, then use Verify/Upload.
 
-| App | Description | Commands |
-| --- | --- | --- |
-| Weather | Displays weather info via MQTT | `GET_WEATHER_DATA` |
-| WiFi | WiFi network scanning and status | `GET_WIFI_LIST`, `GET_WIFI_STATUS` |
+### Configuration
 
-### Weather App Integration
-
-```mermaid
-flowchart LR
-    HA["Home Assistant<br/>(Automation)"] -->|"Publish<br>(1h)"| MB[("MQTT Broker")]
-    MB -->|"Data"| ESP["ESP32"]
-    ESP -->|"Data"| MAC["Weather App"]
-    ESP -.->|"Subscribe"| MB
-    MAC -.->|"Polling<br>(30s)"| ESP
-    
-    linkStyle 0,1,2 stroke:#4CAF50,color:#4CAF50
-    linkStyle 3,4 stroke:#999
-```
-
-1. Home Assistant automation publishes weather data to MQTT every hour.
-2. The ESP32 subscribes to MQTT and caches the data in memory.
-3. The emulated Macintosh Weather app polls the ESP32 via IPC and renders the weather interface.
-
-See `include/umac_ipc.h` for complete IPC protocol definitions.
-
-### Updating the Disk Image Manually
-
-To rebuild the homebrew Mac applications and pack them back into a disk image:
-
-```bash
-# Rebuild applications and update disk image
-./tools/update-disk.sh path/to/disk.img
-# Copy the updated disk.img back to your Micro SD card
-```
+Emulator settings (`UMAC_MEMSIZE`, `DISP_WIDTH`, `DISP_HEIGHT`, `ENABLE_DASM`) are in [src/user_config.h](src/user_config.h).
 
 ## Development
 
 ```bash
-# Format tracked C/C++ files
-mise run format
-
-# Check formatting without changes
-mise run format:check
-
-# Watch serial logs (PlatformIO)
-pio device monitor
-
-# Watch serial logs (Arduino CLI)
-arduino-cli monitor -p COM3
+# Format the project's own C/C++ sources (src/emu/ is vendored and excluded)
+clang-format -i src/*.c src/*.cpp src/*.h
 ```
 
 ## Acknowledgements
 
 - [Musashi](https://github.com/kstenerud/Musashi) - m68k emulator
-- [umac](https://github.com/evansm7/umac) - Mac Plus emulator core
+- [umac](https://github.com/evansm7/umac) - Mac Plus emulator core (via the [likeablob/umac](https://github.com/likeablob/umac) ESP32 fork)
 - [pico-mac](https://github.com/evansm7/pico-mac) - Reference implementation for RP2040
 - [FabGL](https://github.com/fdivitto/FabGL) - Graphics, VGA, and PS/2 input library for ESP32
+- [Reinaldo Torres](https://github.com/reyco2000) - CoCoByte Club, port to TTGOVGA memory handling improvements
 
 ## License
 
 - **Software**: MIT
-- **External libraries**: See respective licenses in `external/`
+- **Bundled emulator core** (`src/emu/`): umac and Musashi (MIT-style), Basilisk II-derived `disc.c` (GPLv2), SoftFloat 2b — see [src/emu/README.md](src/emu/README.md)

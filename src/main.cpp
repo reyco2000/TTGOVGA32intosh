@@ -5,14 +5,12 @@ extern "C" {
 #include "esp_heap_caps.h"
 #include "esp_log.h"
 
-#include "esp_partition.h"
 #include "esp_system.h"
 #include "esp_timer.h"
 
-#include "nvs_flash.h"
 extern "C" {
-#include "rom.h"
-#include "umac.h"
+#include "emu/rom.h"
+#include "emu/umac.h"
 #include "video.h"
 unsigned int m68k_get_reg(void* context, int regnum);
 }
@@ -30,10 +28,8 @@ unsigned int m68k_get_reg(void* context, int regnum);
 #include <Arduino.h>
 #include "fabgl.h"
 
-static const char *TAG = "cydintosh";
+static const char *TAG = "ttgovga32intosh";
 
-static uint8_t *umac_ram = NULL;
-static uint8_t *umac_fb = NULL;
 static const uint8_t *rom_mmap = NULL;
 
 #define UMAC_ROM_SIZE 0x20000
@@ -125,15 +121,15 @@ static void umac_task(void *arg) {
     }
     if (!umac_ram) {
         Serial.println(">>> ERROR: Failed to allocate any PSRAM!");
-        ESP_LOGE(TAG, "[cydintosh] Failed to allocate PSRAM!");
+        ESP_LOGE(TAG, "Failed to allocate PSRAM!");
         vTaskDelete(NULL);
     }
     Serial.printf(">>> UMAC RAM Allocated OK: %dKB\n", ram_kb);
 
-    uint8_t *umac_fb = (uint8_t *)heap_caps_calloc(1, 512 * 342 / 8, MALLOC_CAP_8BIT);
+    uint8_t *umac_fb = (uint8_t *)heap_caps_calloc(1, FB_SIZE, MALLOC_CAP_8BIT);
     if (!umac_fb) {
         Serial.println(">>> ERROR: Failed to allocate framebuffer!");
-        ESP_LOGE(TAG, "[cydintosh] Failed to allocate framebuffer!");
+        ESP_LOGE(TAG, "Failed to allocate framebuffer!");
         vTaskDelete(NULL);
     }
     Serial.println(">>> UMAC Framebuffer Allocated OK.");
@@ -224,31 +220,10 @@ static void umac_task(void *arg) {
 void setup() {
     Serial.begin(115200);
     delay(1000); // Give serial time to connect
-    Serial.println("\n\n>>> CYDINTOSH STARTING UP <<<");
+    Serial.println("\n\n>>> TTGOVGA32INTOSH STARTING UP <<<");
     Serial.println(">>> [1/5] Initializing Display...");
 
-    ESP_LOGI(TAG, "Cydintosh VGA32 starting...");
-
-    umac_ram = (uint8_t *)heap_caps_malloc(RAM_SIZE, MALLOC_CAP_SPIRAM);
-    if (!umac_ram) {
-        ESP_LOGE(TAG, "Failed to allocate PSRAM!");
-        return;
-    }
-    memset(umac_ram, 0, RAM_SIZE);
-
-    umac_fb = (uint8_t *)heap_caps_malloc(FB_SIZE, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
-    if (!umac_fb) {
-        umac_fb = (uint8_t *)heap_caps_malloc(FB_SIZE, MALLOC_CAP_SPIRAM);
-    }
-    if (umac_fb) memset(umac_fb, 0, FB_SIZE);
-
-    esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        ret = nvs_flash_init();
-    }
-
-
+    ESP_LOGI(TAG, "TTGOVGA32intosh starting...");
 
     // PS2 uses standard TTGO VGA32 pins (KB: 26, 27 / Mouse: 32, 33)
     PS2Controller.begin(fabgl::PS2Preset::KeyboardPort0_MousePort1);

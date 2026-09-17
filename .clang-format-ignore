@@ -7,7 +7,7 @@ build_*/
 .cmake/
 
 # External dependencies
-external/
+src/emu/
 managed_components/
 
 # Generated files

@@ -20,7 +20,7 @@ static const char *TAG = "disc_sd";
 static sdmmc_card_t *s_card = NULL;
 static bool s_mounted = false;
 
-/* ── shared file I/O callbacks (same pattern as disc_lfs.c) ───────────── */
+/* ── disc image file I/O callbacks ────────────────────────────────────── */
 
 static int disc_sd_read(void *ctx, uint8_t *data, unsigned int offset,
                         unsigned int len) {
@@ -71,12 +71,11 @@ int disc_sd_open(disc_descr_t *disc, const char *filename, int read_only) {
     ESP_LOGI(TAG, "Mounting SD card on SPI3_HOST (MOSI=%d MISO=%d CLK=%d CS=%d)",
              SD_MOSI, SD_MISO, SD_CLK, SD_CS);
 
-    /* SPI3_HOST (VSPI) is free — touch now uses bit-bang GPIO SPI.
-     * Initialize the bus with the SD card's native VSPI pins. */
+    /* Initialize the SPI bus on the TTGO VGA32 SD card slot pins. */
     spi_bus_config_t bus_cfg = {
-        .mosi_io_num     = SD_MOSI,   // GPIO 23
-        .miso_io_num     = SD_MISO,   // GPIO 19
-        .sclk_io_num     = SD_CLK,    // GPIO 18
+        .mosi_io_num     = SD_MOSI,
+        .miso_io_num     = SD_MISO,
+        .sclk_io_num     = SD_CLK,
         .quadwp_io_num   = -1,
         .quadhd_io_num   = -1,
         .max_transfer_sz = 4096,
@@ -91,7 +90,7 @@ int disc_sd_open(disc_descr_t *disc, const char *filename, int read_only) {
     host.slot = SPI3_HOST;
 
     sdspi_device_config_t slot_cfg = SDSPI_DEVICE_CONFIG_DEFAULT();
-    slot_cfg.gpio_cs = SD_CS;     // GPIO 5
+    slot_cfg.gpio_cs = SD_CS;
     slot_cfg.gpio_cd = SDSPI_SLOT_NO_CD;
     slot_cfg.gpio_wp = SDSPI_SLOT_NO_WP;
     slot_cfg.host_id = SPI3_HOST;

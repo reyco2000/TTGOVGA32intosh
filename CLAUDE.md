@@ -8,7 +8,7 @@ Macintosh Plus emulator (umac + Musashi 68k core) for the **TTGO VGA32 V1.4** (E
 
 It is a plain Arduino sketch: `TTGOVGA32intosh.ino` (empty entry point) at the repo root, code under `src/`. The repo folder must be named `TTGOVGA32intosh`.
 
-The project is a fork of **Cydintosh** (ESP32 "Cheap Yellow Display" 240x320 port). Remaining leftovers **not wired into the firmware**: WiFi/MQTT/Home Assistant/weather settings in `src/user_config.h`, `homeassistant/` automations, and the CYD stand in `enclosure/` (BOSL2 submodule).
+The project is a fork of **Cydintosh** (ESP32 "Cheap Yellow Display" 240x320 port). Remaining leftovers **not wired into the firmware**: WiFi/MQTT/Home Assistant/weather settings in `src/user_config.h` and `homeassistant/` automations.
 
 ## Build / flash / monitor
 

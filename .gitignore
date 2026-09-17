@@ -17,9 +17,6 @@
 # Home Assistant automation
 !/homeassistant/
 
-# 3D-printable stand
-!/enclosure/
-
 ## Denylist
 # Build artifacts (arduino-cli --output-dir / --build-path)
 build/

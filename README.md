@@ -84,6 +84,7 @@ clang-format -i src/*.c src/*.cpp src/*.h
 
 ## Acknowledgements
 
+- [likeablob/cydintosh](https://github.com/likeablob/cydintosh) - Original Cydintosh project (Macintosh Plus emulator for the ESP32 Cheap Yellow Display) this port is based on
 - [Musashi](https://github.com/kstenerud/Musashi) - m68k emulator
 - [umac](https://github.com/evansm7/umac) - Mac Plus emulator core (via the [likeablob/umac](https://github.com/likeablob/umac) ESP32 fork)
 - [pico-mac](https://github.com/evansm7/pico-mac) - Reference implementation for RP2040

@@ -13,6 +13,9 @@
 !/sketch.yaml
 !/src/
 
+# Build/packaging helpers
+!/tools/
+
 ## Denylist
 # Cydintosh Home Assistant automations (kept locally, not used by the firmware)
 /homeassistant/

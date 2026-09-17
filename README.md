@@ -7,6 +7,7 @@ A Macintosh Plus emulator port for ESP32 with VGA and PS/2 peripheral support.
 - **PS/2 Keyboard & Mouse**: Connect standard PS/2 keyboard and mouse directly to the VGA32 board.
 - **SD Card Support**: Loads the Macintosh system disk (`disk.img`) and ROM (`vMAC.ROM`) dynamically from a FAT16/FAT32 formatted Micro SD card.
 - **Dynamic ROM Patching**: Patches the Macintosh Plus ROM in writable PSRAM at runtime, removing the need for pre-patching tools.
+- **ESP32_Bootloader Support**: Can be built as an entry in the [ESP32_Bootloader](https://github.com/ESP-WORKS/ESP32_Bootloader) SD-card menu, so you can swap between emulators without reflashing over USB (see [Building for ESP32_Bootloader](#building-for-esp32_bootloader)).
 
 ## Hardware BOM
 
@@ -32,6 +33,7 @@ A Macintosh Plus emulator port for ESP32 with VGA and PS/2 peripheral support.
 
 2. **Flash Firmware**:
    - Flash a prebuilt release (see [Flashing a Prebuilt Release](#flashing-a-prebuilt-release)), or build and upload it yourself (see [Building](#building)).
+   - Alternatively, if you run [ESP32_Bootloader](https://github.com/ESP-WORKS/ESP32_Bootloader), load it from the SD card instead (see [Building for ESP32_Bootloader](#building-for-esp32_bootloader)).
 
 ## Flashing a Prebuilt Release
 
@@ -159,6 +161,61 @@ Open `TTGOVGA32intosh.ino`, select **ESP32 Dev Module**, set **PSRAM: Enabled** 
 ### Configuration
 
 Emulator settings (`UMAC_MEMSIZE`, `DISP_WIDTH`, `DISP_HEIGHT`, `ENABLE_DASM`) are in [src/user_config.h](src/user_config.h).
+
+The build target (standalone vs. ESP32_Bootloader) is in [src/config.h](src/config.h).
+
+## Building for ESP32_Bootloader
+
+[ESP32_Bootloader](https://github.com/ESP-WORKS/ESP32_Bootloader) turns the TTGO
+VGA32 into an SD-card emulator loader: it lives in the `factory` partition,
+shows a menu of the emulators it finds on the card, and flashes the one you pick
+into `ota_0` — so you can swap between emulators without a computer.
+
+To build TTGOVGA32intosh as one of those menu entries:
+
+```bash
+tools/package-bootloader.sh            # version string from `git describe`
+tools/package-bootloader.sh MyVersion  # or set it yourself
+```
+
+That produces the two files the bootloader expects, in a folder named after the
+menu entry:
+
+```
+build/sdcard/TTGOVGA32intosh/
+├── firmware.bin    the app image, flashed into ota_0
+└── version.txt     changing this is what triggers a reflash
+```
+
+Copy the whole `TTGOVGA32intosh/` folder to the **root of the SD card** (next to
+`vMAC.ROM` and `disk.img`), power-cycle the board, and pick it from the menu.
+
+### What changes in a bootloader build
+
+`src/config.h` selects the build target. The default is standalone; the script
+overrides it with `-DBUILD_TARGET=1` so you don't have to edit the file:
+
+| `BUILD_TARGET` | Meaning |
+| -------------- | ------- |
+| `BUILD_TARGET_STANDALONE` (default) | Flashed over USB. The sketch owns the device and boots directly. |
+| `BUILD_TARGET_BOOTLOADER` | Launched from `ota_0` by ESP32_Bootloader. |
+
+The only behavioural difference is that a bootloader build erases the `otadata`
+partition as the very first thing `setup()` does. Without that the ESP32 would
+boot straight back into the emulator on every power-up and the bootloader menu
+would be unreachable. Setting it up this way is safe in both directions — if you
+flash a bootloader build over USB with the `huge_app` layout there is no
+`otadata` partition to find, so the erase is a no-op.
+
+No partition scheme change is needed. `firmware.bin` is the bare app image and
+carries no partition table of its own, so the same binary maps correctly whether
+it sits at `0x10000` (standalone) or `0x130000` (`ota_0`).
+
+> **NOTE**
+> The `ota_0` partition is **2816 KB**. The packaging script refuses to produce
+> an oversized image, and also checks that `firmware.bin` starts with `0xE9` —
+> the bootloader needs the bare app image, not a merged flash image like the one
+> in [Flashing a Prebuilt Release](#flashing-a-prebuilt-release).
 
 ## Development
 

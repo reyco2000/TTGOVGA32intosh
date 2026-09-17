@@ -16,7 +16,13 @@ unsigned int m68k_get_reg(void* context, int regnum);
 }
 #include "display.h"
 
+#include "config.h"
 #include "user_config.h"
+
+#if BUILD_TARGET == BUILD_TARGET_BOOTLOADER
+#include "esp_ota_ops.h"
+#include "esp_partition.h"
+#endif
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -217,7 +223,32 @@ static void umac_task(void *arg) {
     }
 }
 
+#if BUILD_TARGET == BUILD_TARGET_BOOTLOADER
+// Hand control back to ESP32_Bootloader on the next power-up.
+//
+// The bootloader flashes us into `ota_0` and sets `otadata` to boot it, which
+// means the ESP32 would otherwise come straight back here and the bootloader
+// menu would be unreachable. Wiping `otadata` makes the ROM fall back to the
+// `factory` partition (the bootloader) next time.
+//
+// Harmless in a standalone flash layout such as `huge_app`: there is no
+// `otadata` partition to find, so this is a no-op.
+static void bootloader_release_otadata(void) {
+    const esp_partition_t *otadata = esp_partition_find_first(
+        ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_OTA, NULL);
+    if (!otadata) {
+        return;
+    }
+    esp_partition_erase_range(otadata, 0, otadata->size);
+}
+#endif
+
 void setup() {
+#if BUILD_TARGET == BUILD_TARGET_BOOTLOADER
+    // Must run before anything else, per the ESP32_Bootloader integration notes.
+    bootloader_release_otadata();
+#endif
+
     Serial.begin(115200);
     delay(1000); // Give serial time to connect
     Serial.println("\n\n>>> TTGOVGA32INTOSH STARTING UP <<<");

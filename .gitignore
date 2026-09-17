@@ -14,10 +14,10 @@
 !/sketch.yaml
 !/src/
 
-# Home Assistant automation
-!/homeassistant/
-
 ## Denylist
+# Cydintosh Home Assistant automations (kept locally, not used by the firmware)
+/homeassistant/
+
 # Build artifacts (arduino-cli --output-dir / --build-path)
 build/
 **/*.o

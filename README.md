@@ -31,7 +31,92 @@ A Macintosh Plus emulator port for ESP32 with VGA and PS/2 peripheral support.
    - Insert a Micro SD card containing your `disk.img` and `vMAC.ROM` at the root directory.
 
 2. **Flash Firmware**:
-   - Build and upload the firmware to the VGA32 board (see [Building](#building)).
+   - Flash a prebuilt release (see [Flashing a Prebuilt Release](#flashing-a-prebuilt-release)), or build and upload it yourself (see [Building](#building)).
+
+## Flashing a Prebuilt Release
+
+Ready-to-flash firmware is published on the [Releases page](https://github.com/reyco2000/TTGOVGA32intosh/releases). Each release contains:
+
+| File | Description |
+| --- | --- |
+| `TTGOVGA32intosh-vX.Y.Z-merged.bin` | Complete image (bootloader + partitions + app), flashed at offset `0x0`. **Recommended.** |
+| `TTGOVGA32intosh-vX.Y.Z-app.bin` | Application only (offset `0x10000`) |
+| `TTGOVGA32intosh-vX.Y.Z-bootloader.bin` | Bootloader (offset `0x1000`) |
+| `TTGOVGA32intosh-vX.Y.Z-partitions.bin` | Partition table (offset `0x8000`) |
+| `boot_app0.bin` | OTA data (offset `0xe000`) |
+| `SHA256SUMS.txt` | Checksums for all files |
+
+The examples below use `v0.1.0`; replace it with the release you downloaded.
+
+### 1. Download
+
+Download `TTGOVGA32intosh-v0.1.0-merged.bin` and `SHA256SUMS.txt` from the release page, or with the GitHub CLI:
+
+```bash
+gh release download v0.1.0 -R reyco2000/TTGOVGA32intosh
+```
+
+Optionally verify the download (Linux/macOS):
+
+```bash
+sha256sum -c --ignore-missing SHA256SUMS.txt
+```
+
+### 2. Install esptool
+
+```bash
+pip install esptool
+```
+
+(If you have the Arduino ESP32 core installed, esptool is already bundled with it.)
+
+### 3. Connect the board
+
+Connect the TTGO VGA32 with a USB cable and find its serial port:
+
+- **Linux**: `/dev/ttyACM0` or `/dev/ttyUSB0` (your user must be in the `dialout` group)
+- **macOS**: `/dev/cu.usbserial-*` or `/dev/cu.wchusbserial*`
+- **Windows**: `COM3`, `COM4`, ... (see Device Manager → Ports)
+
+### 4. Flash
+
+**Option A — merged image (recommended):**
+
+```bash
+esptool.py --chip esp32 --port /dev/ttyACM0 --baud 921600 write_flash 0x0 TTGOVGA32intosh-v0.1.0-merged.bin
+```
+
+**Option B — separate images:**
+
+```bash
+esptool.py --chip esp32 --port /dev/ttyACM0 --baud 921600 write_flash -z \
+  --flash_mode dio --flash_freq 80m --flash_size 4MB \
+  0x1000  TTGOVGA32intosh-v0.1.0-bootloader.bin \
+  0x8000  TTGOVGA32intosh-v0.1.0-partitions.bin \
+  0xe000  boot_app0.bin \
+  0x10000 TTGOVGA32intosh-v0.1.0-app.bin
+```
+
+On Windows, use your COM port (e.g. `--port COM3`) and write Option B on one line. With newer esptool versions the command is `esptool` instead of `esptool.py`.
+
+**Option C — web browser (no install):** open the [Espressif ESP Web Flasher](https://espressif.github.io/esptool-js/) in Chrome or Edge, click **Connect**, select the board's port, add `TTGOVGA32intosh-v0.1.0-merged.bin` at address `0x0`, and click **Program**.
+
+If flashing fails to connect, retry with a lower speed (`--baud 115200`).
+
+### 5. Verify
+
+Press the reset button (or unplug/replug USB) and watch the serial log at 115200 baud, e.g. `arduino-cli monitor -p /dev/ttyACM0 -c baudrate=115200` or any serial terminal. A healthy boot ends with:
+
+```
+>>> ROM patched successfully!
+>>> Initializing UMAC Core...
+>>> Starting emulator loop!
+```
+
+If you see `Failed to load ROM from SD card`, check that `vMAC.ROM` and `disk.img` are in the root of the SD card.
+
+> [!NOTE]
+> If `disk.img` is missing, the firmware creates an **empty** `disk.img` on the card (the log shows `Size: 0 bytes`). Replace it with a real system disk image.
 
 ## Building
 

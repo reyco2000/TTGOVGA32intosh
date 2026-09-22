@@ -32,10 +32,12 @@ readonly STAGE_DIR="build/sdcard/$MENU_NAME"
 
 version="${1:-$(git describe --tags --always 2>/dev/null || echo "dev")}"
 
-# Pass the FQBN explicitly. sketch.yaml also sets a default_port, and
-# arduino-cli probes that port for board metadata unless the FQBN is given --
-# which fails when no board is plugged in. Packaging for the SD card should not
-# need the hardware attached.
+# sketch.yaml also sets a default_port, and arduino-cli probes it for board
+# metadata even on a plain compile -- which fails when no board is plugged in
+# ("Error getting port metadata: port not found"). Passing --fqbn does not stop
+# that; any explicit --port overrides the default, and compile never opens it,
+# hence --port none below. Packaging for the SD card should not need the
+# hardware attached.
 fqbn=$(sed -n 's/^default_fqbn:[[:space:]]*//p' sketch.yaml)
 if [ -z "$fqbn" ]; then
     echo "error: could not read default_fqbn from sketch.yaml" >&2
@@ -50,6 +52,7 @@ echo "    fqbn $fqbn"
 rm -rf "$BUILD_DIR"
 arduino-cli compile \
     --fqbn "$fqbn" \
+    --port none \
     --output-dir "$BUILD_DIR" \
     --build-property compiler.cpp.extra_flags=-DBUILD_TARGET=1
 

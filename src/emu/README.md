@@ -10,7 +10,7 @@ Arduino compiles every `.c`/`.cpp` under `src/` recursively, so only the files n
 
 ## Local changes vs. upstream
 
-- `umac_main.c` (umac `src/main.c`, renamed): removed the ESP IPC hooks (`umac_ipc.h`), `MOUSE_MAX_PENDING_PIX` 30 → 400, error output via `printf`.
+- `umac_main.c` (umac `src/main.c`, renamed): removed the ESP IPC hooks (`umac_ipc.h`), `MOUSE_MAX_PENDING_PIX` 30 → 400 → made overridable via `../user_config.h` (default 64), error output via `printf`.
 - `disc.c`: `SonyOpen` derives drive type / sides / block count from the image size (large HFS images), eject debug logging, `printf` output.
 - `rom.c`, `scc.c`, `via.c`: error output via `printf`.
 - `m68kconf.h`, `machw.h`: project versions (ESP32 `IRAM_ATTR` fast functions, framebuffer split into internal RAM; `machw.h` pulls settings from `../user_config.h`).

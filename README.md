@@ -164,6 +164,17 @@ Emulator settings (`UMAC_MEMSIZE`, `DISP_WIDTH`, `DISP_HEIGHT`, `ENABLE_DASM`) a
 
 The build target (standalone vs. ESP32_Bootloader) is in [src/config.h](src/config.h).
 
+#### Mouse tuning
+
+Also in `src/user_config.h`:
+
+| Setting | Default | Effect |
+| --- | --- | --- |
+| `MOUSE_SENSITIVITY` | `2.0` | Multiplier applied to raw PS/2 mouse deltas. Higher = more cursor travel per inch of physical movement. |
+| `MOUSE_MAX_PENDING_PIX` | `24` | Max queued mouse-quadrature steps per axis. The emulator can only drain ~75-150 px/sec/axis (68k emulation doesn't run at real-time speed on this hardware), so a fast swipe's backlog visibly "traces" to its destination; lowering this shortens that catch-up at the cost of how far a single fast swipe can throw the cursor. |
+
+Raising `MOUSE_SENSITIVITY` does **not** fix a slow-feeling cursor — it only changes how much screen distance a given hand movement covers. The catch-up lag is governed by `MOUSE_MAX_PENDING_PIX` and the emulator's mouse-quadrature drain rate, which is CPU-bound and not currently real-time.
+
 ## Building for ESP32_Bootloader
 
 [ESP32_Bootloader](https://github.com/ESP-WORKS/ESP32_Bootloader) turns the TTGO

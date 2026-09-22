@@ -599,7 +599,9 @@ void    umac_opt_disassemble(int enable)
         disassemble = enable;
 }
 
+#ifndef MOUSE_MAX_PENDING_PIX
 #define MOUSE_MAX_PENDING_PIX   400
+#endif
 
 static int pending_mouse_deltax = 0;
 static int pending_mouse_deltay = 0;

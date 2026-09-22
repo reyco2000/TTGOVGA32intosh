@@ -194,8 +194,9 @@ static void umac_task(void *arg) {
                 fabgl::MouseDelta delta;
                 while (PS2Controller.mouse()->getNextDelta(&delta, 0)) {
                     int buttons = delta.buttons.left ? 1 : 0;
-                    // Mac Y axis is inverted relative to PS/2
-                    umac_mouse(delta.deltaX, -delta.deltaY, buttons);
+                    int dx      = (int)(delta.deltaX * MOUSE_SENSITIVITY);
+                    int dy      = (int)(delta.deltaY * MOUSE_SENSITIVITY);
+                    umac_mouse(dx, dy, buttons);
                 }
             }
 

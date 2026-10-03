@@ -16,6 +16,9 @@
 # Build/packaging helpers
 !/tools/
 
+# Design notes / plans
+!/docs/
+
 ## Denylist
 # Cydintosh Home Assistant automations (kept locally, not used by the firmware)
 /homeassistant/
